@@ -10,7 +10,7 @@ Updated at: May 10, 2026
 
 Before any distributed-systems concept enters the codebase, the core functions of the system need to work: gRPC over TCP, file I/O, error propagation, CLI ergonomics, project layout. Slice 1 forces all of that into place while the rest of the system is trivial.
 
-If at the end of slice 1 the `distfs put` and `distfs get` round-trip a file correctly, then every later slice can assume "the wires work" and we can focus on the actual hard parts (consensus, replication, chunking) without simultaneously debugging your RPC plumbing.
+If at the end of slice 1 the `distfs put` and `distfs get` round-trip a file correctly, then every later slice can assume "the wires work" and we can focus on the actual hard parts (consensus, replication, chunking) without simultaneously debugging the RPC plumbing.
 
 ---
 
@@ -27,7 +27,7 @@ Three operations to start:
 - `distfs get <remotename> <localpath>` — downloads a file
 - `distfs ls` — lists files on the server
 
-Everything runs on your laptop in slice 1. No multi-machine yet.
+Everything runs on the laptop in slice 1. No multi-machine yet.
 
 ---
 
@@ -37,7 +37,7 @@ A few decisions worth making *now* even though they look like overkill for one s
 
 1. **Use gRPC with a `.proto` file**, not hand-rolled HTTP. You'll regenerate code as the API evolves; the schema is the interface contract.
 2. **Separate `server` package from `proto` package from `client` package.** Even though slice 1 is small, this layout maps directly to later slices where the server becomes multiple services.
-3. **The server stores files in a configurable directory**, not a hardcoded path. You'll want to run multiple instances on the same machine later in the project.
+3. **The server stores files in a configurable directory**, not a hardcoded path. We'll want to run multiple instances on the same machine later in the project.
 4. **Don't read whole files into memory.** Use streaming gRPC for `Put` and `Get`. In slice 1, the files will be small, but we'll have multi-GB files later, and rewriting a streaming layer in a later slice is way worse than getting it right now.
 5. **Errors come back as gRPC status codes**, not strings. Use `codes.NotFound`, `codes.AlreadyExists`, `codes.Internal`, etc. Future code will inspect these.
 
@@ -60,9 +60,9 @@ service DistFS {
 Decisions to make:
 
 - **Streaming chunk size.** What's the size of each `PutRequest`/`GetResponse` payload? (Note: gRPC has a default 4MB message limit. Stay well under it. 64KB-256KB seems reasonable.)
-- **How do you frame a file in the stream?** First message has metadata (filename, size), subsequent messages have just bytes? Or every message has the filename and a sequence number? (Note: the first may be simpler.)
+- **How do we frame a file in the stream?** First message has metadata (filename, size), subsequent messages have just bytes? Or every message has the filename and a sequence number? (Note: the first may be simpler.)
 - **Atomicity.** What happens if the client disconnects mid-`Put`? Does the server keep the partial file, or discard it? (Note: write to a temp file, rename on success. This is the same pattern as POSIX atomic file writes.)
-- **Overwrite semantics.** What if the file already exists when `Put` is called? Reject? Replace? Version? (Note: pick one explicitly; document the choice in your proto comments.)
+- **Overwrite semantics.** What if the file already exists when `Put` is called? Reject? Replace? Version? (Note: pick one explicitly; document the choice in our proto comments.)
 
 ---
 
@@ -163,4 +163,4 @@ So we can see where this is heading and design slice 1's interfaces to fit:
 
 In slice 2, `distfs-server` splits into `distfs-metadata` and `distfs-chunkstore`. The CLI client first calls metadata to ask "where do I put this file?", gets back a placement decision ("write to chunkstore at localhost:9001"), then streams bytes to the chunkstore. The metadata service tracks file names → chunk locations.
 
-This means in slice 1, we should keep your `internal/storage` interface narrow enough that it could be replaced by "ask another service where to put this." Don't bake file naming logic into the storage layer. Don't have the storage layer talk to gRPC. Keep concerns separated.
+This means in slice 1, we should keep our `internal/storage` interface narrow enough that it could be replaced by "ask another service where to put this." Don't bake file naming logic into the storage layer. Don't have the storage layer talk to gRPC. Keep concerns separated.
