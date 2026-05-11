@@ -1,6 +1,6 @@
 # DistFS — Learning + Product Goals
 
-*Personal distributed file storage system. One-page goals doc. Owned by me, edited by me.*
+*Personal distributed file storage system. One-page goals doc. Checked off by Alex Ni and David Liu on May 10, 2026.*
 
 *Last updated: May 2026*
 
@@ -54,20 +54,21 @@ If forced to choose, I optimize for *learning that produces a useful artifact* �
 
 **P4. Multi-machine fault tolerance.** 3 nodes on LAN to start. Killing any 1 node does not lose data and does not block reads. Writes block briefly during leader re-election (acceptable per L3).
 
-**P5. Sub-3-second responsiveness for normal operations.** Listing a directory <1s, opening a small file <2s, starting a stream of a large file <3s.
+**P5. Sub-3-second responsiveness for normal operations.** Listing a directory <1s, opening a small file <2s, starting a stream of a large file <3s. Benchmarks can be subject to change in the future.
 
-**P6. Designed to grow to ~5TB over a year, with chunking when files get large.** No erasure coding for v1.
+**P6. Designed to grow to ~5TB over a year, with chunking when files get large.** No erasure coding for v1. The main goal is chunking files, 5TB is just a number.
 
 **P7. E2E-compatible architecture; transport + at-rest encryption from day 1.**
 - Tailscale handles transport (Wireguard tunnels) once I leave LAN.
 - LUKS / FileVault handles at-rest on each node's data drive.
 - Server treats file contents as opaque bytes (no server-side content indexing) so E2E remains addable without architectural refactor.
+- Important reminder to prevent more implementation and refactoring later in the project.
 
 ---
 
 ## Anti-goals (explicit non-features)
 
-**A1. Not multi-user.** No auth, no ACLs, no quota, no identity in v1. If I want to share with my friend, he runs his own instance.
+**A1. Not multi-user.** No auth, no ACLs, no quota, no identity in v1. If I want to share with my friend, he runs his own instance. Can be added in the future after Tier 3 is finished.
 
 **A2. Not real-time collaboration.** No Google-Docs-style concurrent editing. One writer at a time per file (enforced by metadata lock).
 
@@ -75,33 +76,29 @@ If forced to choose, I optimize for *learning that produces a useful artifact* �
 
 **A4. Not a Drive feature competitor.** No sharing links, no comments, no in-app preview, no mobile app, no thumbnails (initially).
 
-**A5. Not production-grade.** Best-effort reliability with documented failure modes. I keep my real backups elsewhere until I trust this.
+**A5. Not a research project.** I am not inventing a new consensus algorithm or a new consistency model. I'm using existing ones (Raft, linearizable metadata) correctly.
 
-**A6. Not a research project.** I am not inventing a new consensus algorithm or a new consistency model. I'm using existing ones (Raft, linearizable metadata) correctly.
-
-**A7. Static cluster membership in v1.** No dynamic add/remove of nodes. Adding a 4th node or moving the cluster requires stopping everything, editing config, restarting. Dynamic membership (joint consensus) is a stretch learning project, not month 1.
+**A6. Static cluster membership in v1.** No dynamic add/remove of nodes. Adding a 4th node or moving the cluster requires stopping everything, editing config, restarting. Dynamic membership (joint consensus) is a stretch learning project, not month 1.
 
 ---
 
 ## Month 1 Definition of Done — three tiers
 
-**Tier 1 (floor — would not be embarrassed):**
-3 Raft nodes running as separate processes on my laptop. Replicated key-value store. I can `put`/`get` via a CLI. Killing any 1 node doesn't break reads. Leader election works. *This is the consensus core; if I only get here, project is still a real learning win.*
+**Tier 1 (floor):**
+3 Raft nodes running as separate processes on my laptop. Replicated key-value store. I can `put`/`get` via a CLI. Killing any 1 node doesn't break reads. Leader election works.
 
-**Tier 2 (target — "real thing"):**
+**Tier 2 (target):**
 Tier 1 + 3 nodes on actual separate machines on my LAN + FUSE mount on my laptop. `cp file ~/distfs/` writes the file replicated across all 3 nodes. Killing any 1 node, reads still work, writes resume after election. No chunking, no Tailscale, no UI yet.
 
-**Tier 3 (stretch — likely month 2):**
+**Tier 3 (stretch):**
 Tier 2 + Tailscale set up so I can hit the cluster from outside LAN + chunking for files >4MB + at-rest encryption configured.
-
-**I commit to Tier 1 as the floor, aim at Tier 2.** Check progress at end of week 2. If tracking behind, I cut Tier 2 scope, not learning depth.
 
 ---
 
 ## Decisions made and why (so future me remembers)
 
 - **Raft over Paxos:** chose Raft because I already implemented Paxos for class — the learning value is in *consensus*, and Raft is the modern teaching version that's easier to reason about (Ongaro's whole point). I'll read his thesis as I implement.
-- **Single-user over multi-user:** multi-user is ~30% more code with zero distributed-systems learning value. Defer.
+- **Single-user over multi-user:** multi-user is ~30% more code with zero distributed-systems learning value. Defer, can be implemented after everything else is done.
 - **FUSE edit-in-place over Dropbox-style sync:** sync engines are their own deep project (conflict resolution, change detection). Edit-in-place matches the "consistency over availability" choice and removes a whole problem domain.
 - **LAN before Tailscale:** Tailscale is a 10-minute install. Getting consensus + FUSE working on LAN is the actual hard part. Sequence by what's load-bearing.
 - **Metadata-only consensus, not all-bytes consensus:** consensus is expensive; pushing every byte of a 4GB video through Raft is the wrong tool. Standard GFS-lineage split. (See L4 — this is also what makes the locking interesting.)
