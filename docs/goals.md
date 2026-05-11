@@ -27,11 +27,11 @@ If forced to choose, I optimize for *learning that produces a useful artifact* â
 - Success: I can say what consistency model my system provides for each operation (metadata read, metadata write, file read, file write) and defend the choice. I can explain the difference between linearizability, sequential consistency, and eventual consistency in concrete terms, with examples from my own code.
 - Falsifier: If someone asks "is your system linearizable?" and I have to look it up, I haven't learned this.
 
-**L3. Make CAP tradeoffs consciously instead of by accident.**
+**L3. Make CAP tradeoffs consciously.**
 - Success: I have written down, somewhere in my code's design doc, the specific moments my system chooses C over A (or vice versa) and why. When my system blocks during a partition, I can explain why that's the correct behavior given my choices.
 - Falsifier: If I can't point to a specific line of code or design decision and say "this is where I chose C over A," it's accidental, not learned.
 
-**L4. Practice the network filesystem concurrency patterns again, in a real system.**
+**L4. Practice the network filesystem concurrency patterns in a real system.**
 - Success: I implement at least one piece of fine-grained locking (likely on the metadata tree) and can explain why it's correct under concurrent access. I understand the RPC semantics (at-most-once, exactly-once) my system uses and where each applies.
 - Falsifier: If I just slap a single global mutex on the metadata service and call it done, I'm not exercising this.
 
