@@ -78,11 +78,11 @@ If forced to choose, I optimize for *learning that produces a useful artifact* �
 
 **A5. Not a research project.** I am not inventing a new consensus algorithm or a new consistency model. I'm using existing ones (Raft, linearizable metadata) correctly.
 
-**A6. Static cluster membership in v1.** No dynamic add/remove of nodes. Adding a 4th node or moving the cluster requires stopping everything, editing config, restarting. Dynamic membership (joint consensus) is a stretch learning project, not month 1.
+**A6. Static cluster membership in v1.** No dynamic add/remove of nodes. Adding a 4th node or moving the cluster requires stopping everything, editing config, restarting. Dynamic membership (joint consensus) is a stretch learning project.
 
 ---
 
-## Month 1 Definition of Done — three tiers
+## Sprint 1 Definition of Done — three tiers
 
 **Tier 1 (floor):**
 3 Raft nodes running as separate processes on my laptop. Replicated key-value store. I can `put`/`get` via a CLI. Killing any 1 node doesn't break reads. Leader election works.
@@ -92,6 +92,8 @@ Tier 1 + 3 nodes on actual separate machines on my LAN + FUSE mount on my laptop
 
 **Tier 3 (stretch):**
 Tier 2 + Tailscale set up so I can hit the cluster from outside LAN + chunking for files >4MB + at-rest encryption configured.
+
+Note: More goals can be added in later sprints.
 
 ---
 
