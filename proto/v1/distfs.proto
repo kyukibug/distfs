@@ -2,8 +2,9 @@ syntax = "proto3";
 
 package distfs.v1;
 
-option go_package = "github.com/dvdliu/dists/distfs/proto/distfs/v1;distfspb";
-// TODO Verify and test LOC above
+option go_package = "github.com/kyukibug/distfs/proto/v1;distfspb";
+
+import "google/protobuf/timestamp.proto";
 
 // DistFS Service which provides a remote file storage service.
 service DistFS {
@@ -23,8 +24,8 @@ service DistFS {
 // request: client -> server
 message PutRequest {
   oneof payload {
-    // First message only: file metadata
-    FileInfo info = 1;
+    // First message only: filename
+    string name = 1;
     // Subsequent messages: raw file bytes, up to 256 KB per chunk
     bytes chunk_data = 2;
   }
@@ -32,7 +33,7 @@ message PutRequest {
 
 // response: server -> client
 message PutResponse {
-  bool success = 1; // Flag if the file was saved successfully or not
+  int64 bytes_written = 1; // number of bytes server wrote
 }
 
 // Get messages
@@ -44,19 +45,15 @@ message GetRequest {
 
 // response: server -> client
 message GetResponse {
-  oneof payload {
-    // First message only, contains metadata
-    FileInfo info = 1;
-    // Subsequent messages, contains
-    bytes chunk_data = 2;
-  }
+  // Each response is apart of a stream
+  bytes chunk_data = 1;
 }
 
 // List messages
 
 // request: client -> server
 message ListRequest {
-  string prefix = 1; // remote path to list files
+  optional string prefix = 1; // remote path to list files
 }
 
 // response: server -> client
@@ -68,4 +65,5 @@ message ListResponse {
 message FileInfo {
   string name       = 1; // remote path
   int64  size_bytes = 2; // total size of file
+  google.protobuf.Timestamp last_modified = 3; // time of last modification in UTC
 }
