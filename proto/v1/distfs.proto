@@ -24,8 +24,8 @@ service DistFS {
 // request: client -> server
 message PutRequest {
   oneof payload {
-    // First message only: filename
-    string name = 1;
+    // First message only: file metadata
+    string FileInfo = 1;
     // Subsequent messages: raw file bytes, up to 256 KB per chunk
     bytes chunk_data = 2;
   }
@@ -63,7 +63,7 @@ message ListResponse {
 
 // File metadata
 message FileInfo {
-  string name       = 1; // remote path
-  int64  size_bytes = 2; // total size of file
+  string                    name          = 1; // remote path
+  int64                     size_bytes    = 2; // total size of file
   google.protobuf.Timestamp last_modified = 3; // time of last modification in UTC
 }
