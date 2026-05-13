@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package distfs.v1;
+
+option go_package = "github.com/kyukibug/distfs/proto/v1;distfspb";
+
+import "google/protobuf/timestamp.proto";
+
+// DistFS Service which provides a remote file storage service.
+service DistFS {
+  // Put streams a file to the server. The first message contains metadata,
+  // subsequent messages contain only chunk_data.
+  rpc Put(stream PutRequest) returns (PutResponse);
+
+  // Get streams a file back to the client.
+  rpc Get(GetRequest) returns (stream GetResponse);
+
+  // List returns all stored files with metadata.
+  rpc List(ListRequest) returns (ListResponse);
+}
+
+// Put messages
+
+// request: client -> server
+message PutRequest {
+  oneof payload {
+    // First message only: file metadata.
+    // size_bytes is an advisory hint used by the server only for an upfront
+    // capacity check; the stored size is the actual number of bytes received.
+    // last_modified is stored verbatim and echoed back in ListResponse; the
+    // server does not use it for ordering, staleness, or validation.
+    FileInfo info = 1;
+    // Subsequent messages: raw file bytes, up to 256 KB per chunk
+    bytes chunk_data = 2;
+  }
+}
+
+// response: server -> client
+message PutResponse {
+  int64 bytes_written = 1; // number of bytes server wrote
+}
+
+// Get messages
+
+// request: client -> server
+message GetRequest {
+  string name = 1; // remote path, e.g. "jobs/resume"
+}
+
+// response: server -> client
+message GetResponse {
+  // Each response is apart of a stream
+  bytes chunk_data = 1;
+}
+
+// List messages
+
+// request: client -> server
+message ListRequest {
+  optional string prefix = 1; // remote path to list files
+}
+
+// response: server -> client
+message ListResponse {
+  repeated FileInfo files = 1; // List of file metadata
+}
+
+// File metadata
+message FileInfo {
+  string                    name          = 1; // remote path
+  int64                     size_bytes    = 2; // total size of file
+  google.protobuf.Timestamp last_modified = 3; // time of last modification in UTC
+}
